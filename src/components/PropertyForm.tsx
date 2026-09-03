@@ -42,6 +42,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSuccess, onError, 
         description: '',
         type: 'HOUSE',
         purpose: 'SALE',
+        status: 'AVAILABLE',
         price: '',
         condoFee: '',
         taxFee: '',
@@ -158,6 +159,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSuccess, onError, 
             description: prop.description || '',
             type: prop.type || 'HOUSE',
             purpose: prop.purpose || 'SALE',
+            status: prop.status || 'AVAILABLE',
             price: formattedPrice,
             condoFee: prop.condoFee?.toString() || '',
             taxFee: prop.taxFee?.toString() || '',
@@ -199,6 +201,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSuccess, onError, 
             description: '',
             type: 'HOUSE',
             purpose: 'SALE',
+            status: 'AVAILABLE',
             price: '',
             condoFee: '',
             taxFee: '',
@@ -238,6 +241,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSuccess, onError, 
                 description: propertyForm.description,
                 type: propertyForm.type,
                 purpose: propertyForm.purpose,
+                status: propertyForm.status,
                 price: cleanPrice,
                 condoFee: Number(propertyForm.condoFee || 0),
                 taxFee: Number(propertyForm.taxFee || 0),
@@ -346,6 +350,21 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSuccess, onError, 
                         >
                             <option value="SALE">Venda</option>
                             <option value="RENT">Locação</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block font-medium text-gray-600 dark:text-gray-300">Status do Imóvel</label>
+                        <select
+                            value={propertyForm.status}
+                            onChange={e => setPropertyForm({ ...propertyForm, status: e.target.value })}
+                            className="w-full border dark:border-gray-700 p-1.5 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                        >
+                            <option value="AVAILABLE">Disponível</option>
+                            <option value="SOLD">Vendido</option>
+                            <option value="RENTED">Alugado</option>
+                            <option value="RESERVED">Reservado</option>
+                            <option value="INACTIVE">Inativo</option>
                         </select>
                     </div>
 

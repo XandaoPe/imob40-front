@@ -21,6 +21,7 @@ export interface Broker {
     avatarUrl?: string;
     bio?: string;
     role: 'ADMIN' | 'MANAGER' | 'BROKER';
+    isActive?: boolean;
 }
 
 export interface PropertyImage {

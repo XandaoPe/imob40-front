@@ -1,7 +1,7 @@
 // frontend/src/pages/AdminDashboard.tsx
 import React, { useState, useEffect } from 'react';
 import { UserPlus, Home, CheckCircle2 } from 'lucide-react';
-import { BrokerForm } from '../components/BrokerForm';
+import { BrokerManagement } from '../components/BrokerManagement';
 import { PropertyForm } from '../components/PropertyForm';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { TenantAuthProvider } from '../context/TenantAuthContext';
@@ -58,7 +58,7 @@ export const AdminDashboardContent: React.FC = () => {
                                 : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
                                 }`}
                         >
-                            <UserPlus className="h-5 w-5" /> Cadastrar Corretor
+                            <UserPlus className="h-5 w-5" /> Gerenciar Corretores
                         </button>
                     )}
                     <button
@@ -72,7 +72,7 @@ export const AdminDashboardContent: React.FC = () => {
                             : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
                             }`}
                     >
-                        <Home className="h-5 w-5" /> Cadastrar Imóvel
+                        <Home className="h-5 w-5" /> Gerenciar Imóveis
                     </button>
                 </div>
 
@@ -104,7 +104,7 @@ export const AdminDashboardContent: React.FC = () => {
 
                 <div className="p-6">
                     {isAdmin && activeTab === 'broker' && (
-                        <BrokerForm
+                        <BrokerManagement
                             onSuccess={(msg) => {
                                 setSuccessMessage(msg);
                                 setErrorMessage('');
@@ -112,6 +112,10 @@ export const AdminDashboardContent: React.FC = () => {
                             onError={(err) => {
                                 setErrorMessage(err);
                                 setSuccessMessage('');
+                            }}
+                            onClearMessages={() => {
+                                if (successMessage) setSuccessMessage('');
+                                if (errorMessage) setErrorMessage('');
                             }}
                         />
                     )}

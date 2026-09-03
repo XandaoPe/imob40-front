@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { ShieldAlert, Edit2, Save, X, Lock, Building2, User as UserIcon, Image as ImageIcon } from 'lucide-react';
+import { PropertyImageManager, PropertyImage } from './PropertyImageManager';
 
 export const SuperAdminPanel: React.FC = () => {
     const [data, setData] = useState<{ tenants: any[], users: any[], properties: any[] }>({ tenants: [], users: [], properties: [] });
@@ -24,9 +25,17 @@ export const SuperAdminPanel: React.FC = () => {
 
     const handleEditClick = (item: any) => {
         setEditingId(item._id);
+        const normalizedImages = (item.images || []).map((img: any, idx: number) => ({
+            url: img.url,
+            isCover: img.isCover !== undefined ? img.isCover : (idx === 0),
+            order: img.order !== undefined ? img.order : idx
+        }));
+
         setEditForm({
             ...item,
-            whatsappContact: item.settings?.whatsappContact || ''
+            whatsappContact: item.settings?.whatsappContact || '',
+            images: normalizedImages,
+            avatarUrl: item.avatarUrl || ''
         });
     };
 
@@ -53,6 +62,17 @@ export const SuperAdminPanel: React.FC = () => {
         }
     };
 
+    const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setEditForm({ ...editForm, avatarUrl: reader.result as string });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const translateStatus = (status: string) => {
         const map: Record<string, string> = {
             ACTIVE: 'Ativo',
@@ -60,7 +80,8 @@ export const SuperAdminPanel: React.FC = () => {
             INACTIVE: 'Inativo',
             AVAILABLE: 'Disponível',
             RESERVED: 'Reservado',
-            SOLD: 'Vendido'
+            SOLD: 'Vendido',
+            RENTED: 'Alugado'
         };
         return map[status] || status;
     };
@@ -183,7 +204,7 @@ export const SuperAdminPanel: React.FC = () => {
                                     ) : (
                                         <div className="space-y-1">
                                             <div>CNPJ: {t.cnpj} | CRECI: {t.creci}</div>
-                                            <div className="text-xs text-gray-400">WhatsApp: {t.settings?.whatsappContact} | Status: <span className="text-green-400">{translateStatus(t.status)}</span></div>
+                                            <div className="text-xs text-gray-400">WhatsApp: {t.settings?.whatsappContact} | Status: <span className={t.status === 'ACTIVE' ? 'text-green-400' : 'text-red-400'}>{translateStatus(t.status)}</span></div>
                                         </div>
                                     )}
                                 </td>
@@ -233,43 +254,75 @@ export const SuperAdminPanel: React.FC = () => {
                                 </td>
                                 <td className="p-3 text-gray-300">
                                     {editingId === u._id ? (
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                            <div>
-                                                <label className="text-xs text-gray-400">Telefone:</label>
-                                                <input value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white" />
+                                        <div className="space-y-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                <div>
+                                                    <label className="text-xs text-gray-400">Telefone:</label>
+                                                    <input value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-400">CRECI:</label>
+                                                    <input value={editForm.creci || ''} onChange={e => setEditForm({ ...editForm, creci: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-400">Função (Role):</label>
+                                                    <select value={editForm.role || 'BROKER'} onChange={e => setEditForm({ ...editForm, role: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white">
+                                                        <option value="SUPER_ADMIN">Super Administrador</option>
+                                                        <option value="ADMIN">Administrador</option>
+                                                        <option value="BROKER">Corretor</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-400">Status:</label>
+                                                    <select value={editForm.status || 'ACTIVE'} onChange={e => setEditForm({ ...editForm, status: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white">
+                                                        <option value="ACTIVE">Ativo</option>
+                                                        <option value="INACTIVE">Inativo</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-400">Tenant ID:</label>
+                                                    <input value={editForm.tenantId || ''} onChange={e => setEditForm({ ...editForm, tenantId: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white font-mono text-xs" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-yellow-400 flex items-center gap-1"><Lock size={12} /> Nova Senha (Opcional):</label>
+                                                    <input type="password" placeholder="Deixe em branco p/ manter" value={editForm.password || ''} onChange={e => setEditForm({ ...editForm, password: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white" />
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label className="text-xs text-gray-400">CRECI:</label>
-                                                <input value={editForm.creci || ''} onChange={e => setEditForm({ ...editForm, creci: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white" />
-                                            </div>
-                                            <div>
-                                                <label className="text-xs text-gray-400">Função (Role):</label>
-                                                <select value={editForm.role || 'BROKER'} onChange={e => setEditForm({ ...editForm, role: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white">
-                                                    <option value="SUPER_ADMIN">Super Administrador</option>
-                                                    <option value="ADMIN">Administrador</option>
-                                                    <option value="BROKER">Corretor</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="text-xs text-gray-400">Status:</label>
-                                                <select value={editForm.status || 'ACTIVE'} onChange={e => setEditForm({ ...editForm, status: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white">
-                                                    <option value="ACTIVE">Ativo</option>
-                                                    <option value="INACTIVE">Inativo</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="text-xs text-gray-400">Tenant ID:</label>
-                                                <input value={editForm.tenantId || ''} onChange={e => setEditForm({ ...editForm, tenantId: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white font-mono text-xs" />
-                                            </div>
-                                            <div>
-                                                <label className="text-xs text-yellow-400 flex items-center gap-1"><Lock size={12} /> Nova Senha (Opcional):</label>
-                                                <input type="password" placeholder="Deixe em branco p/ manter" value={editForm.password || ''} onChange={e => setEditForm({ ...editForm, password: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white" />
+
+                                            {/* Gerenciamento de Imagem do Usuário (Avatar com Upload Direto / Preview) */}
+                                            <div className="border border-gray-700 p-3 rounded-lg bg-gray-900/50 space-y-2">
+                                                <label className="text-xs font-bold text-purple-300 flex items-center gap-1">
+                                                    <ImageIcon size={14} /> Foto de Perfil (Avatar)
+                                                </label>
+                                                {editForm.avatarUrl ? (
+                                                    <div className="relative w-24 h-24 rounded-full overflow-hidden border border-gray-700 group inline-block">
+                                                        <img src={editForm.avatarUrl} alt="Avatar Preview" className="w-full h-full object-cover" />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setEditForm({ ...editForm, avatarUrl: '' })}
+                                                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-red-400 font-bold text-xs"
+                                                        >
+                                                            Remover
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-600 hover:border-purple-500 rounded-lg p-4 cursor-pointer bg-gray-900/30 transition-colors">
+                                                        <ImageIcon size={24} className="text-gray-400 mb-1" />
+                                                        <span className="text-xs text-gray-300 font-medium">Clique para selecionar a foto de perfil</span>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            onChange={handleAvatarFileChange}
+                                                        />
+                                                    </label>
+                                                )}
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="space-y-1">
                                             <div>Tel: {u.phone} | CRECI: {u.creci || 'N/A'} | Função: <span className="text-yellow-400 font-semibold">{translateRole(u.role)}</span></div>
-                                            <div className="text-xs text-gray-400">Status: {translateStatus(u.status)} | Tenant ID: {u.tenantId || 'N/A'}</div>
+                                            <div className="text-xs text-gray-400">Status: <span className={u.status === 'ACTIVE' ? 'text-green-400' : 'text-red-400'}>{translateStatus(u.status)}</span> | Tenant ID: {u.tenantId || 'N/A'}</div>
                                         </div>
                                     )}
                                 </td>
@@ -326,36 +379,44 @@ export const SuperAdminPanel: React.FC = () => {
                                     </td>
                                     <td className="p-3 text-gray-300">
                                         {editingId === p._id ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                                <div>
-                                                    <label className="text-xs text-gray-400">Preço (R$):</label>
-                                                    <input type="number" value={editForm.price || 0} onChange={e => setEditForm({ ...editForm, price: Number(e.target.value) })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white" />
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                    <div>
+                                                        <label className="text-xs text-gray-400">Preço (R$):</label>
+                                                        <input type="number" value={editForm.price || 0} onChange={e => setEditForm({ ...editForm, price: Number(e.target.value) })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs text-gray-400">Finalidade:</label>
+                                                        <select value={editForm.purpose || 'SALE'} onChange={e => setEditForm({ ...editForm, purpose: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white">
+                                                            <option value="SALE">Venda</option>
+                                                            <option value="RENT">Locação</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs text-gray-400">Status:</label>
+                                                        <select value={editForm.status || 'AVAILABLE'} onChange={e => setEditForm({ ...editForm, status: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white">
+                                                            <option value="AVAILABLE">Disponível</option>
+                                                            <option value="SOLD">Vendido</option>
+                                                            <option value="RENTED">Alugado</option>
+                                                            <option value="INACTIVE">Inativo</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="sm:col-span-3">
+                                                        <label className="text-xs text-gray-400">Descrição:</label>
+                                                        <textarea rows={2} value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white" />
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <label className="text-xs text-gray-400">Finalidade:</label>
-                                                    <select value={editForm.purpose || 'SALE'} onChange={e => setEditForm({ ...editForm, purpose: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white">
-                                                        <option value="SALE">Venda</option>
-                                                        <option value="RENT">Locação</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs text-gray-400">Status:</label>
-                                                    <select value={editForm.status || 'AVAILABLE'} onChange={e => setEditForm({ ...editForm, status: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white">
-                                                        <option value="AVAILABLE">Disponível</option>
-                                                        <option value="RESERVED">Reservado</option>
-                                                        <option value="SOLD">Vendido</option>
-                                                        <option value="INACTIVE">Inativo</option>
-                                                    </select>
-                                                </div>
-                                                <div className="sm:col-span-3">
-                                                    <label className="text-xs text-gray-400">Descrição:</label>
-                                                    <textarea rows={2} value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} className="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-white" />
-                                                </div>
+
+                                                <PropertyImageManager
+                                                    images={editForm.images || []}
+                                                    onChange={(images: PropertyImage[]) => setEditForm({ ...editForm, images })}
+                                                />
                                             </div>
                                         ) : (
                                             <div className="space-y-1">
-                                                <div>R$ {p.price?.toLocaleString('pt-BR')} | Finalidade: {translatePurpose(p.purpose)} | Status: <span className="text-blue-400">{translateStatus(p.status)}</span></div>
+                                                <div>R$ {p.price?.toLocaleString('pt-BR')} | Finalidade: {translatePurpose(p.purpose)} | Status: <span className={p.status === 'AVAILABLE' ? 'text-green-400' : 'text-yellow-400'}>{translateStatus(p.status)}</span></div>
                                                 <div className="text-xs text-gray-400 truncate max-w-md">{p.description}</div>
+                                                <div className="text-[11px] text-purple-300">Imagens: {p.images?.length || 0} cadastrada(s)</div>
                                             </div>
                                         )}
                                     </td>
