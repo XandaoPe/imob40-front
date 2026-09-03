@@ -29,30 +29,33 @@ export function App() {
 
   return (
     <BrowserRouter>
-      <nav className="bg-gray-900 text-white px-6 py-3 flex justify-between items-center text-sm shadow border-b border-gray-800">
-        <div className="font-bold tracking-wide flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-blue-400" /> Sistema Imobiliário Multi-Tenant
+      <nav className="bg-gray-900 text-white px-4 sm:px-6 py-3 flex flex-wrap justify-between items-center text-xs sm:text-sm shadow border-b border-gray-800 gap-3">
+        <div className="font-bold tracking-wide flex items-center gap-2 min-w-0">
+          <Building2 className="h-5 w-5 text-blue-400 flex-shrink-0" />
+          <span className="truncate">Sistema Imobiliário Multi-Tenant</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center flex-wrap gap-2 sm:gap-4">
           {user?.tenantId && (
             <Link to={`/catalog/${user.tenantId}`} className="hover:text-blue-300 transition flex items-center gap-1">
-              <Globe className="h-4 w-4" /> Site Público da Imobiliária
+              <Globe className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden md:inline">Site Público da Imobiliária</span>
+              <span className="md:hidden">Site Público</span>
             </Link>
           )}
           {user?.role === 'SUPER_ADMIN' ? (
             <Link to="/super-admin" className="hover:text-purple-300 transition flex items-center gap-1 text-purple-400 font-semibold">
-              <ShieldAlert className="h-4 w-4" /> Super Admin
+              <ShieldAlert className="h-4 w-4 flex-shrink-0" /> Super Admin
             </Link>
           ) : user ? (
             <Link to="/admin" className="hover:text-blue-300 transition flex items-center gap-1">
-              <Settings className="h-4 w-4" /> Painel Admin
+              <Settings className="h-4 w-4 flex-shrink-0" /> Painel Admin
             </Link>
           ) : null}
           {user ? (
-            <div className="flex items-center gap-3 border-l border-gray-700 pl-4">
-              <span className="text-xs text-gray-300">Olá, <b>{user.name}</b></span>
-              <button onClick={handleLogout} className="text-red-400 hover:text-red-300 transition flex items-center gap-1">
-                <LogOut className="h-4 w-4" /> Sair
+            <div className="flex items-center gap-2 sm:gap-3 border-l border-gray-700 pl-3 sm:pl-4">
+              <span className="text-xs text-gray-300 truncate max-w-[100px] sm:max-w-none">Olá, <b>{user.name}</b></span>
+              <button onClick={handleLogout} className="text-red-400 hover:text-red-300 transition flex items-center gap-1 flex-shrink-0">
+                <LogOut className="h-4 w-4 flex-shrink-0" /> Sair
               </button>
             </div>
           ) : (
