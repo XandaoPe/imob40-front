@@ -1,15 +1,16 @@
 // frontend/src/pages/AdminDashboard.tsx
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Home, CheckCircle2 } from 'lucide-react';
+import { UserPlus, Home, CheckCircle2, Kanban } from 'lucide-react';
 import { BrokerManagement } from '../components/BrokerManagement';
 import { PropertyForm } from '../components/PropertyForm';
+import { CrmPipeline } from '../components/CrmPipeline';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { TenantAuthProvider } from '../context/TenantAuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 
 export const AdminDashboardContent: React.FC = () => {
     const [user, setUser] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'broker' | 'property'>('property');
+    const [activeTab, setActiveTab] = useState<'broker' | 'property' | 'crm'>('property');
     const [successMessage, setSuccessMessage] = useState<string>('');
     const [errorMessage, setErrorMessage] = useState<string>('');
 
@@ -24,16 +25,36 @@ export const AdminDashboardContent: React.FC = () => {
         }
     }, []);
 
+    // Auto-close success message after 4 seconds
+    useEffect(() => {
+        if (successMessage) {
+            const timer = setTimeout(() => {
+                setSuccessMessage('');
+            }, 4000);
+            return () => clearTimeout(timer);
+        }
+    }, [successMessage]);
+
+    // Auto-close error message after 6 seconds
+    useEffect(() => {
+        if (errorMessage) {
+            const timer = setTimeout(() => {
+                setErrorMessage('');
+            }, 6000);
+            return () => clearTimeout(timer);
+        }
+    }, [errorMessage]);
+
     const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
     const tenantId = user?.tenantId;
 
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6 text-gray-800 dark:text-gray-100 transition-colors">
-            <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden transition-colors">
+            <div className="max-w-6xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden transition-colors">
                 <div className="bg-blue-900 dark:bg-blue-950 p-6 text-white flex justify-between items-center">
                     <div>
                         <h1 className="text-2xl font-bold">Painel Administrativo - CRM Multi-Tenant</h1>
-                        <p className="text-sm text-blue-200">Gerencie corretores e imóveis da sua imobiliária.</p>
+                        <p className="text-sm text-blue-200">Gerencie corretores, imóveis e negócios da sua imobiliária.</p>
                     </div>
                     <div className="flex items-center gap-4">
                         {tenantId && (
@@ -45,7 +66,7 @@ export const AdminDashboardContent: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <div className="flex border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-x-auto">
                     {isAdmin && (
                         <button
                             onClick={() => {
@@ -53,12 +74,12 @@ export const AdminDashboardContent: React.FC = () => {
                                 setSuccessMessage('');
                                 setErrorMessage('');
                             }}
-                            className={`flex-1 py-4 font-semibold text-center flex items-center justify-center gap-2 border-b-2 transition ${activeTab === 'broker'
-                                    ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800'
-                                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                            className={`flex-1 min-w-[150px] py-4 font-semibold text-center flex items-center justify-center gap-2 border-b-2 transition ${activeTab === 'broker'
+                                ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800'
+                                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
                                 }`}
                         >
-                            <UserPlus className="h-5 w-5" /> Gerenciar Corretores
+                            <UserPlus className="h-5 w-5" /> Corretores
                         </button>
                     )}
                     <button
@@ -67,12 +88,25 @@ export const AdminDashboardContent: React.FC = () => {
                             setSuccessMessage('');
                             setErrorMessage('');
                         }}
-                        className={`flex-1 py-4 font-semibold text-center flex items-center justify-center gap-2 border-b-2 transition ${activeTab === 'property'
-                                ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800'
-                                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                        className={`flex-1 min-w-[150px] py-4 font-semibold text-center flex items-center justify-center gap-2 border-b-2 transition ${activeTab === 'property'
+                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800'
+                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
                             }`}
                     >
-                        <Home className="h-5 w-5" /> Gerenciar Imóveis
+                        <Home className="h-5 w-5" /> Imóveis
+                    </button>
+                    <button
+                        onClick={() => {
+                            setActiveTab('crm');
+                            setSuccessMessage('');
+                            setErrorMessage('');
+                        }}
+                        className={`flex-1 min-w-[150px] py-4 font-semibold text-center flex items-center justify-center gap-2 border-b-2 transition ${activeTab === 'crm'
+                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800'
+                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                            }`}
+                    >
+                        <Kanban className="h-5 w-5" /> CRM / Pipeline
                     </button>
                 </div>
 
@@ -132,6 +166,19 @@ export const AdminDashboardContent: React.FC = () => {
                             }}
                         />
                     )}
+
+                    {activeTab === 'crm' && (
+                        <CrmPipeline
+                            onSuccess={(msg) => {
+                                setSuccessMessage(msg);
+                                setErrorMessage('');
+                            }}
+                            onError={(err) => {
+                                setErrorMessage(err);
+                                setSuccessMessage('');
+                            }}
+                        />
+                    )}
                 </div>
             </div>
         </div>
@@ -147,3 +194,5 @@ export const AdminDashboard: React.FC = () => {
         </ThemeProvider>
     );
 };
+
+export default AdminDashboard;
