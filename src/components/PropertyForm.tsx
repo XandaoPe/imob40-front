@@ -65,7 +65,11 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSuccess, onError, 
         onSuccess(message);
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => {
-            if (onClearMessages) onClearMessages();
+            if (onClearMessages) {
+                onClearMessages();
+            } else {
+                onSuccess(''); // Limpa a mensagem caso o pai não gerencie onClearMessages
+            }
         }, 4000);
     };
 
@@ -73,7 +77,11 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSuccess, onError, 
         onError(msg);
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => {
-            if (onClearMessages) onClearMessages();
+            if (onClearMessages) {
+                onClearMessages();
+            } else {
+                onError(''); // Limpa o erro caso o pai não gerencie onClearMessages
+            }
         }, 4000);
     };
 

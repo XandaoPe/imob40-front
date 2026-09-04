@@ -20,7 +20,7 @@ export const BrokerList: React.FC<BrokerListProps> = ({
 }) => {
     const getImageUrl = (url?: string) => {
         if (!url) return '';
-        if (url.startsWith('http')) return url;
+        if (url.startsWith('http') || url.startsWith('data:')) return url;
         const baseUrl = api.defaults.baseURL?.replace('/api/v1', '') || 'http://localhost:3000';
         return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
     };

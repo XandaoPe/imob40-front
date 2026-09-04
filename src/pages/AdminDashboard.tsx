@@ -54,8 +54,8 @@ export const AdminDashboardContent: React.FC = () => {
                                 setErrorMessage('');
                             }}
                             className={`flex-1 py-4 font-semibold text-center flex items-center justify-center gap-2 border-b-2 transition ${activeTab === 'broker'
-                                ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800'
-                                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                                    ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800'
+                                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
                                 }`}
                         >
                             <UserPlus className="h-5 w-5" /> Gerenciar Corretores
@@ -68,8 +68,8 @@ export const AdminDashboardContent: React.FC = () => {
                             setErrorMessage('');
                         }}
                         className={`flex-1 py-4 font-semibold text-center flex items-center justify-center gap-2 border-b-2 transition ${activeTab === 'property'
-                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800'
-                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                                ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800'
+                                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
                             }`}
                     >
                         <Home className="h-5 w-5" /> Gerenciar Imóveis
@@ -84,7 +84,7 @@ export const AdminDashboardContent: React.FC = () => {
                         </div>
                         <button
                             onClick={() => setSuccessMessage('')}
-                            className="text-green-700 dark:text-green-300 hover:opacity-75 text-xs font-semibold"
+                            className="text-green-700 dark:text-green-300 hover:opacity-75 text-xs font-semibold px-2 py-1"
                         >
                             Fechar
                         </button>
@@ -95,7 +95,7 @@ export const AdminDashboardContent: React.FC = () => {
                         <span>{errorMessage}</span>
                         <button
                             onClick={() => setErrorMessage('')}
-                            className="text-red-700 dark:text-red-300 hover:opacity-75 text-xs font-semibold"
+                            className="text-red-700 dark:text-red-300 hover:opacity-75 text-xs font-semibold px-2 py-1"
                         >
                             Fechar
                         </button>
@@ -114,8 +114,8 @@ export const AdminDashboardContent: React.FC = () => {
                                 setSuccessMessage('');
                             }}
                             onClearMessages={() => {
-                                if (successMessage) setSuccessMessage('');
-                                if (errorMessage) setErrorMessage('');
+                                setSuccessMessage('');
+                                setErrorMessage('');
                             }}
                         />
                     )}
@@ -129,10 +129,6 @@ export const AdminDashboardContent: React.FC = () => {
                             onError={(err) => {
                                 setErrorMessage(err);
                                 setSuccessMessage('');
-                            }}
-                            onClearMessages={() => {
-                                if (successMessage) setSuccessMessage('');
-                                if (errorMessage) setErrorMessage('');
                             }}
                         />
                     )}

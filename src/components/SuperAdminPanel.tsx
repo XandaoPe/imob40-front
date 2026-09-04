@@ -9,6 +9,26 @@ export const SuperAdminPanel: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'tenants' | 'users' | 'properties'>('tenants');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState<any>({});
+    const [successMessage, setSuccessMessage] = useState<string>('');
+    const [errorMessage, setErrorMessage] = useState<string>('');
+
+    const triggerSuccess = (message: string) => {
+        setSuccessMessage(message);
+        setErrorMessage('');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => {
+            setSuccessMessage('');
+        }, 4000);
+    };
+
+    const triggerError = (msg: string) => {
+        setErrorMessage(msg);
+        setSuccessMessage('');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => {
+            setErrorMessage('');
+        }, 4000);
+    };
 
     const fetchAllData = async () => {
         try {
@@ -16,6 +36,7 @@ export const SuperAdminPanel: React.FC = () => {
             setData(res.data);
         } catch (err) {
             console.error('Erro ao buscar dados globais', err);
+            triggerError('Erro ao carregar dados globais.');
         }
     };
 
@@ -24,6 +45,8 @@ export const SuperAdminPanel: React.FC = () => {
     }, []);
 
     const handleEditClick = (item: any) => {
+        setSuccessMessage('');
+        setErrorMessage('');
         setEditingId(item._id);
         const normalizedImages = (item.images || []).map((img: any, idx: number) => ({
             url: img.url,
@@ -42,6 +65,8 @@ export const SuperAdminPanel: React.FC = () => {
     const handleCancel = () => {
         setEditingId(null);
         setEditForm({});
+        setSuccessMessage('');
+        setErrorMessage('');
     };
 
     const handleSave = async (modelType: string, id: string) => {
@@ -56,20 +81,54 @@ export const SuperAdminPanel: React.FC = () => {
             await api.put(`/super-admin/${modelType}/${id}`, payload);
             setEditingId(null);
             setEditForm({});
+            triggerSuccess('Registro atualizado com sucesso!');
             fetchAllData();
-        } catch (err) {
-            alert('Erro ao atualizar registro.');
+        } catch (err: any) {
+            triggerError(err.response?.data?.error || 'Erro ao atualizar registro.');
         }
     };
 
-    const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
+    const resizeImage = (file: File): Promise<string> => {
+        return new Promise((resolve) => {
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setEditForm({ ...editForm, avatarUrl: reader.result as string });
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 512;
+                    const MAX_HEIGHT = 512;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.75));
+                };
+                img.src = e.target?.result as string;
             };
             reader.readAsDataURL(file);
+        });
+    };
+
+    const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const compressedBase64 = await resizeImage(file);
+            setEditForm({ ...editForm, avatarUrl: compressedBase64 });
         }
     };
 
@@ -115,6 +174,9 @@ export const SuperAdminPanel: React.FC = () => {
 
     return (
         <div className="p-6 max-w-7xl mx-auto text-gray-100">
+            {successMessage && <div className="mb-4 p-3 bg-green-900/50 border border-green-700 text-green-200 rounded text-sm">{successMessage}</div>}
+            {errorMessage && <div className="mb-4 p-3 bg-red-900/50 border border-red-700 text-red-200 rounded text-sm">{errorMessage}</div>}
+
             <div className="bg-gradient-to-r from-purple-900 to-indigo-900 p-6 rounded-xl shadow-lg flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
                 <div>
                     <h1 className="text-2xl font-black flex items-center gap-2">
@@ -289,7 +351,6 @@ export const SuperAdminPanel: React.FC = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Gerenciamento de Imagem do Usuário (Avatar com Upload Direto / Preview) */}
                                             <div className="border border-gray-700 p-3 rounded-lg bg-gray-900/50 space-y-2">
                                                 <label className="text-xs font-bold text-purple-300 flex items-center gap-1">
                                                     <ImageIcon size={14} /> Foto de Perfil (Avatar)

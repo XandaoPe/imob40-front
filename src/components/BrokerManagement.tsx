@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import { Broker } from '../types';
 import { useTenantAuth } from '../context/TenantAuthContext';
@@ -11,7 +11,11 @@ interface BrokerManagementProps {
     onClearMessages?: () => void;
 }
 
-export const BrokerManagement: React.FC<BrokerManagementProps> = ({ onSuccess, onError, onClearMessages }) => {
+export const BrokerManagement: React.FC<BrokerManagementProps> = ({
+    onSuccess,
+    onError,
+    onClearMessages = () => { }
+}) => {
     const { tenantId } = useTenantAuth();
     const [brokersList, setBrokersList] = useState<Broker[]>([]);
     const [editingBroker, setEditingBroker] = useState<Broker | null>(null);
@@ -21,7 +25,7 @@ export const BrokerManagement: React.FC<BrokerManagementProps> = ({ onSuccess, o
     const isAdmin = currentUser?.role === 'ADMIN' || isSuperAdmin;
     const activeTenantId = tenantId || currentUser?.tenantId;
 
-    const fetchBrokers = async () => {
+    const fetchBrokers = useCallback(async () => {
         if (!activeTenantId && !isSuperAdmin) return;
         try {
             const endpoint = isSuperAdmin ? '/users/tenant/all' : `/users/tenant/${activeTenantId}`;
@@ -30,17 +34,17 @@ export const BrokerManagement: React.FC<BrokerManagementProps> = ({ onSuccess, o
         } catch (err) {
             setBrokersList([]);
         }
-    };
+    }, [activeTenantId, isSuperAdmin]);
 
     useEffect(() => {
         setBrokersList([]);
         if (activeTenantId || isSuperAdmin) {
             fetchBrokers();
         }
-    }, [activeTenantId]);
+    }, [activeTenantId, isSuperAdmin, fetchBrokers]);
 
     const handleEdit = (broker: Broker) => {
-        if (onClearMessages) onClearMessages();
+        onClearMessages();
         setEditingBroker(broker);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };

@@ -25,9 +25,33 @@ export const BrokerForm: React.FC<BrokerFormProps> = ({
     const [phone, setPhone] = useState('');
     const [bio, setBio] = useState('');
     const [isActive, setIsActive] = useState<boolean>(true);
-    const [avatar, setAvatar] = useState<File | null>(null);
+    const [avatarUrl, setAvatarUrl] = useState<string>('');
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+
+    const triggerSuccess = (message: string) => {
+        onSuccess(message);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => {
+            if (onClearMessages) {
+                onClearMessages();
+            } else {
+                onSuccess(''); // Limpa a mensagem caso o pai não gerencie onClearMessages
+            }
+        }, 4000);
+    };
+
+    const triggerError = (msg: string) => {
+        onError(msg);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => {
+            if (onClearMessages) {
+                onClearMessages();
+            } else {
+                onError(''); // Limpa o erro caso o pai não gerencie onClearMessages
+            }
+        }, 4000);
+    };
 
     useEffect(() => {
         if (editingBroker) {
@@ -38,7 +62,7 @@ export const BrokerForm: React.FC<BrokerFormProps> = ({
             setPhone(editingBroker.phone || '');
             setBio(editingBroker.bio || '');
             setIsActive(editingBroker.isActive !== false);
-            setAvatar(null);
+            setAvatarUrl(editingBroker.avatarUrl || '');
             setAvatarPreview(editingBroker.avatarUrl ? getImageUrl(editingBroker.avatarUrl) : null);
         } else {
             resetForm();
@@ -53,22 +77,59 @@ export const BrokerForm: React.FC<BrokerFormProps> = ({
         setPhone('');
         setBio('');
         setIsActive(true);
-        setAvatar(null);
+        setAvatarUrl('');
         setAvatarPreview(null);
     };
 
-    const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const resizeImage = (file: File): Promise<string> => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 512;
+                    const MAX_HEIGHT = 512;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.75));
+                };
+                img.src = e.target?.result as string;
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (onClearMessages) onClearMessages();
-        const file = e.target.files?.[0] || null;
-        setAvatar(file);
+        const file = e.target.files?.[0];
         if (file) {
-            setAvatarPreview(URL.createObjectURL(file));
+            const compressedBase64 = await resizeImage(file);
+            setAvatarUrl(compressedBase64);
+            setAvatarPreview(compressedBase64);
         }
     };
 
     const getImageUrl = (url: string) => {
         if (!url) return '';
-        if (url.startsWith('http')) return url;
+        if (url.startsWith('http') || url.startsWith('data:')) return url;
         const baseUrl = api.defaults.baseURL?.replace('/api/v1', '') || 'http://localhost:3000';
         return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
     };
@@ -83,44 +144,39 @@ export const BrokerForm: React.FC<BrokerFormProps> = ({
             const currentUser = savedUser ? JSON.parse(savedUser) : null;
 
             if (!currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'SUPER_ADMIN')) {
-                onError('Apenas administradores podem gerenciar corretores.');
+                triggerError('Apenas administradores podem gerenciar corretores.');
                 setLoading(false);
                 return;
             }
 
-            const formData = new FormData();
-            formData.append('tenantId', currentUser.tenantId);
-            formData.append('name', name);
-            formData.append('email', email);
-            if (password) {
-                formData.append('password', password);
-            }
-            formData.append('creci', creci);
-            formData.append('phone', phone);
-            formData.append('bio', bio);
-            formData.append('role', 'BROKER');
-            formData.append('isActive', String(isActive));
-            formData.append('requesterRole', currentUser.role);
+            const payload: any = {
+                tenantId: currentUser.tenantId,
+                name,
+                email,
+                creci,
+                phone,
+                bio,
+                role: 'BROKER',
+                isActive: String(isActive) === 'true' || isActive === true,
+                requesterRole: currentUser.role,
+                avatarUrl
+            };
 
-            if (avatar) {
-                formData.append('avatar', avatar);
+            if (password) {
+                payload.password = password;
             }
 
             if (editingBroker) {
-                await api.put(`/users/${editingBroker._id}`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
-                onSuccess('Corretor atualizado com sucesso!');
+                await api.put(`/users/${editingBroker._id}`, payload);
+                triggerSuccess('Corretor atualizado com sucesso!');
                 if (onCancelEdit) onCancelEdit();
             } else {
-                await api.post('/users', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
-                onSuccess('Corretor cadastrado com sucesso!');
+                await api.post('/users', payload);
+                triggerSuccess('Corretor cadastrado com sucesso!');
                 resetForm();
             }
         } catch (err: any) {
-            onError(err.response?.data?.error || 'Erro ao salvar corretor.');
+            triggerError(err.response?.data?.error || 'Erro ao salvar corretor.');
         } finally {
             setLoading(false);
         }
