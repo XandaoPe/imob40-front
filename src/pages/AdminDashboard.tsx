@@ -1,16 +1,17 @@
 // frontend/src/pages/AdminDashboard.tsx
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Home, CheckCircle2, Kanban } from 'lucide-react';
+import { UserPlus, Home, CheckCircle2, Kanban, Users } from 'lucide-react';
 import { BrokerManagement } from '../components/BrokerManagement';
 import { PropertyForm } from '../components/PropertyForm';
 import { CrmPipeline } from '../components/CrmPipeline';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { TenantAuthProvider } from '../context/TenantAuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
+import { ClientManagement } from '../components/ClientManagement';
 
 export const AdminDashboardContent: React.FC = () => {
     const [user, setUser] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'broker' | 'property' | 'crm'>('property');
+    const [activeTab, setActiveTab] = useState<'broker' | 'property' | 'crm' | 'client'>('property');
     const [successMessage, setSuccessMessage] = useState<string>('');
     const [errorMessage, setErrorMessage] = useState<string>('');
 
@@ -97,6 +98,19 @@ export const AdminDashboardContent: React.FC = () => {
                     </button>
                     <button
                         onClick={() => {
+                            setActiveTab('client');
+                            setSuccessMessage('');
+                            setErrorMessage('');
+                        }}
+                        className={`flex-1 min-w-[150px] py-4 font-semibold text-center flex items-center justify-center gap-2 border-b-2 transition ${activeTab === 'client'
+                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800'
+                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                            }`}
+                    >
+                        <Users className="h-5 w-5" /> Clientes / Vendedores
+                    </button>
+                    <button
+                        onClick={() => {
                             setActiveTab('crm');
                             setSuccessMessage('');
                             setErrorMessage('');
@@ -179,6 +193,20 @@ export const AdminDashboardContent: React.FC = () => {
                             }}
                         />
                     )}
+
+                    {activeTab === 'client' && (
+                        <ClientManagement
+                            onSuccess={(msg) => {
+                                setSuccessMessage(msg);
+                                setErrorMessage('');
+                            }}
+                            onError={(err) => {
+                                setErrorMessage(err);
+                                setSuccessMessage('');
+                            }}
+                        />
+                    )}
+                    
                 </div>
             </div>
         </div>
