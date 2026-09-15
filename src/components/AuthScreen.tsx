@@ -6,18 +6,6 @@ interface AuthScreenProps {
     onLoginSuccess: (userData: any) => void;
 }
 
-// Função auxiliar para converter Base64Url para Uint8Array no login biométrico
-const base64UrlToUint8Array = (base64Url: string) => {
-    const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
-    const base64 = (base64Url + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-};
-
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
     const [isRegistering, setIsRegistering] = useState(false);
     const [identifier, setIdentifier] = useState('');
@@ -50,7 +38,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
         }
     };
 
-    // Função opcional para cadastrar biometria para usuários já logados ou cadastrados
+    // Função para cadastrar biometria (continua exigindo o e-mail preenchido para vincular à conta correta)
     const handleRegisterBiometric = async () => {
         try {
             setError('');
@@ -94,38 +82,31 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
         }
     };
 
-    // Função de Login por Reconhecimento Facial / Digital (Biometria)
+    // Função de Login por Biometria 100% Independente (Sem exigir e-mail ou senha prévios)
     const handleBiometricLogin = async () => {
         try {
             setError('');
-            if (!identifier) {
-                setError('Digite seu e-mail acima para usar a biometria.');
+
+            if (!window.PublicKeyCredential) {
+                setError('Este navegador não suporta autenticação por biometria.');
                 return;
             }
 
-            const chalRes = await api.get(`/auth/biometric/challenge?email=${identifier}`);
-            const { challenge, credentialId } = chalRes.data;
-
-            if (!credentialId) {
-                setError('Nenhuma biometria cadastrada para este e-mail. Faça login com senha e clique em "Cadastrar Biometria".');
-                return;
-            }
+            // Pede um desafio genérico ao backend
+            const chalRes = await api.get('/auth/biometric/challenge');
+            const { challenge } = chalRes.data;
 
             const publicKey: PublicKeyCredentialRequestOptions = {
                 challenge: new TextEncoder().encode(challenge),
-                allowCredentials: [{
-                    id: base64UrlToUint8Array(credentialId),
-                    type: 'public-key',
-                    transports: ['internal']
-                }],
                 timeout: 60000,
                 userVerification: 'required'
             };
 
+            // O navegador solicita a biometria do usuário e retorna a credencial correspondente
             const assertion = await navigator.credentials.get({ publicKey }) as PublicKeyCredential;
             if (assertion) {
+                // Envia apenas o ID da credencial para o backend identificar o usuário e gerar o token
                 const response = await api.post('/auth/biometric/login', {
-                    email: identifier,
                     credentialId: assertion.id
                 });
                 localStorage.setItem('token', response.data.token);
@@ -133,7 +114,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                 onLoginSuccess(response.data.user);
             }
         } catch (err: any) {
-            setError('Falha na autenticação biométrica. Tente novamente ou use a senha.');
+            setError(err.response?.data?.error || 'Falha na autenticação biométrica. Tente novamente ou use a senha.');
         }
     };
 
@@ -171,7 +152,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                                 <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                                 <input
                                     type="text"
-                                    required
                                     placeholder="ex: seu@email.com ou 11999999999"
                                     value={identifier}
                                     onChange={(e) => setIdentifier(e.target.value)}
@@ -185,7 +165,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                                 <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                                 <input
                                     type="password"
-                                    required
                                     placeholder="******"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
