@@ -6,6 +6,18 @@ interface AuthScreenProps {
     onLoginSuccess: (userData: any) => void;
 }
 
+// Função auxiliar para converter Base64Url para Uint8Array para o WebAuthn
+const base64UrlToUint8Array = (base64Url: string) => {
+    const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
+    const base64 = (base64Url + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+};
+
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
     const [isRegistering, setIsRegistering] = useState(false);
     const [identifier, setIdentifier] = useState('');
@@ -66,7 +78,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                 pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
                 timeout: 60000,
                 attestation: 'none',
-                // OBRIGATÓRIO PARA LOGIN AUTÔNOMO: Define que a biometria é salva no aparelho como chave residente
                 authenticatorSelection: {
                     authenticatorAttachment: 'platform',
                     residentKey: 'required',
@@ -88,7 +99,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
         }
     };
 
-    // Função de Login por Biometria 100% Independente
+    // Função de Login por Biometria Blindada contra chaves antigas
     const handleBiometricLogin = async () => {
         try {
             setError('');
@@ -99,10 +110,20 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
             }
 
             const chalRes = await api.get('/auth/biometric/challenge');
-            const { challenge } = chalRes.data;
+            const { challenge, allowedCredentialIds } = chalRes.data;
+
+            if (!allowedCredentialIds || allowedCredentialIds.length === 0) {
+                setError('Nenhuma biometria cadastrada no sistema. Faça login com senha e cadastre a biometria.');
+                return;
+            }
 
             const publicKey: PublicKeyCredentialRequestOptions = {
                 challenge: new TextEncoder().encode(challenge),
+                allowCredentials: allowedCredentialIds.map((id: string) => ({
+                    id: base64UrlToUint8Array(id),
+                    type: 'public-key',
+                    transports: ['internal']
+                })),
                 timeout: 60000,
                 userVerification: 'required'
             };
