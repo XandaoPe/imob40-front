@@ -1,10 +1,22 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
-import { Building2, User, Lock, Phone, Mail, FileText } from 'lucide-react';
+import { Building2, Lock, Mail, Fingerprint } from 'lucide-react';
 
 interface AuthScreenProps {
     onLoginSuccess: (userData: any) => void;
 }
+
+// Função auxiliar para converter Base64Url para Uint8Array no login biométrico
+const base64UrlToUint8Array = (base64Url: string) => {
+    const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
+    const base64 = (base64Url + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+};
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
     const [isRegistering, setIsRegistering] = useState(false);
@@ -13,7 +25,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // Campos de Registro de Tenant
     const [form, setForm] = useState({
         tenantName: '',
         tradeName: '',
@@ -32,9 +43,97 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
             const response = await api.post('/auth/login', { identifier, password });
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
+
             onLoginSuccess(response.data.user);
         } catch (err: any) {
             setError(err.response?.data?.error || 'Erro ao realizar login.');
+        }
+    };
+
+    // Função opcional para cadastrar biometria para usuários já logados ou cadastrados
+    const handleRegisterBiometric = async () => {
+        try {
+            setError('');
+            if (!identifier) {
+                setError('Digite seu e-mail acima para cadastrar a biometria.');
+                return;
+            }
+
+            if (!window.PublicKeyCredential) {
+                setError('Este navegador não suporta autenticação por biometria.');
+                return;
+            }
+
+            const chalRes = await api.get(`/auth/biometric/challenge?email=${identifier}`);
+            const { userId, email, name } = chalRes.data;
+
+            const publicKey: PublicKeyCredentialCreationOptions = {
+                challenge: new TextEncoder().encode(chalRes.data.challenge),
+                rp: { name: 'Sistema Imobiliario' },
+                user: {
+                    id: new TextEncoder().encode(userId),
+                    name: email,
+                    displayName: name || email
+                },
+                pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
+                timeout: 60000,
+                attestation: 'none'
+            };
+
+            const cred = await navigator.credentials.create({ publicKey }) as PublicKeyCredential;
+            if (cred) {
+                await api.post('/auth/biometric/register', {
+                    userId: userId,
+                    credentialId: cred.id,
+                    publicKey: 'active'
+                });
+                setSuccess('Biometria cadastrada com sucesso! Agora você pode usá-la para entrar.');
+            }
+        } catch (err: any) {
+            setError('Não foi possível cadastrar a biometria. Verifique se cancelou a operação.');
+        }
+    };
+
+    // Função de Login por Reconhecimento Facial / Digital (Biometria)
+    const handleBiometricLogin = async () => {
+        try {
+            setError('');
+            if (!identifier) {
+                setError('Digite seu e-mail acima para usar a biometria.');
+                return;
+            }
+
+            const chalRes = await api.get(`/auth/biometric/challenge?email=${identifier}`);
+            const { challenge, credentialId } = chalRes.data;
+
+            if (!credentialId) {
+                setError('Nenhuma biometria cadastrada para este e-mail. Faça login com senha e clique em "Cadastrar Biometria".');
+                return;
+            }
+
+            const publicKey: PublicKeyCredentialRequestOptions = {
+                challenge: new TextEncoder().encode(challenge),
+                allowCredentials: [{
+                    id: base64UrlToUint8Array(credentialId),
+                    type: 'public-key',
+                    transports: ['internal']
+                }],
+                timeout: 60000,
+                userVerification: 'required'
+            };
+
+            const assertion = await navigator.credentials.get({ publicKey }) as PublicKeyCredential;
+            if (assertion) {
+                const response = await api.post('/auth/biometric/login', {
+                    email: identifier,
+                    credentialId: assertion.id
+                });
+                localStorage.setItem('token', response.data.token);
+                localStorage.setItem('user', JSON.stringify(response.data.user));
+                onLoginSuccess(response.data.user);
+            }
+        } catch (err: any) {
+            setError('Falha na autenticação biométrica. Tente novamente ou use a senha.');
         }
     };
 
@@ -58,7 +157,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                 <div className="text-center mb-6">
                     <Building2 className="h-12 w-12 text-blue-500 mx-auto mb-2" />
                     <h1 className="text-2xl font-bold">Sistema Imobiliário Multi-Tenant</h1>
-                    <p className="text-sm text-gray-400">{isRegistering ? 'Cadastre sua Imobiliária e seu acesso Admin' : 'Faça login com e-mail ou telefone'}</p>
+                    <p className="text-sm text-gray-400">{isRegistering ? 'Cadastre sua Imobiliária e seu acesso Admin (Biometria opcional posterior)' : 'Faça login com e-mail/telefone ou Biometria'}</p>
                 </div>
 
                 {error && <div className="mb-4 p-3 bg-red-900/50 border border-red-700 text-red-200 rounded text-sm">{error}</div>}
@@ -95,8 +194,26 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                             </div>
                         </div>
                         <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold p-3 rounded-lg transition">
-                            Entrar
+                            Entrar com Senha
                         </button>
+
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={handleBiometricLogin}
+                                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold p-3 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                            >
+                                <Fingerprint className="h-5 w-5" /> Entrar por Biometria
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleRegisterBiometric}
+                                className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold p-3 rounded-lg transition flex items-center justify-center gap-2 text-sm border border-gray-600"
+                            >
+                                Cadastrar Biometria
+                            </button>
+                        </div>
+
                         <p className="text-center text-sm text-gray-400 mt-4">
                             Não tem uma imobiliária cadastrada?{' '}
                             <button type="button" onClick={() => setIsRegistering(true)} className="text-blue-400 hover:underline font-medium">
