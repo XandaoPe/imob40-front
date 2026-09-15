@@ -5,13 +5,15 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AuthScreen } from './components/AuthScreen';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { Building2, Settings, LogOut, ShieldAlert, Globe } from 'lucide-react';
+import { ThemeProvider } from './context/ThemeContext';
+import { ThemeToggle } from './components/ThemeToggle';
 
 function PublicCatalogWrapper() {
   const { tenantId } = useParams<{ tenantId?: string }>();
   return <PublicCatalog tenantId={tenantId} />;
 }
 
-export function App() {
+export function AppContent() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -29,61 +31,78 @@ export function App() {
 
   return (
     <BrowserRouter>
-      <nav className="bg-gray-900 text-white px-4 sm:px-6 py-3 flex flex-wrap justify-between items-center text-xs sm:text-sm shadow border-b border-gray-800 gap-3">
-        <div className="font-bold tracking-wide flex items-center gap-2 min-w-0">
-          <Building2 className="h-5 w-5 text-blue-400 flex-shrink-0" />
-          <span className="truncate">Sistema Imobiliário Multi-Tenant</span>
-        </div>
-        <div className="flex items-center flex-wrap gap-2 sm:gap-4">
-          {user?.tenantId && (
-            <Link to={`/catalog/${user.tenantId}`} className="hover:text-blue-300 transition flex items-center gap-1">
-              <Globe className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden md:inline">Site Público da Imobiliária</span>
-              <span className="md:hidden">Site Público</span>
-            </Link>
-          )}
-          {user?.role === 'SUPER_ADMIN' ? (
-            <Link to="/super-admin" className="hover:text-purple-300 transition flex items-center gap-1 text-purple-400 font-semibold">
-              <ShieldAlert className="h-4 w-4 flex-shrink-0" /> Super Admin
-            </Link>
-          ) : user ? (
-            <Link to="/admin" className="hover:text-blue-300 transition flex items-center gap-1">
-              <Settings className="h-4 w-4 flex-shrink-0" /> Painel Admin
-            </Link>
-          ) : null}
-          {user ? (
-            <div className="flex items-center gap-2 sm:gap-3 border-l border-gray-700 pl-3 sm:pl-4">
-              <span className="text-xs text-gray-300 truncate max-w-[100px] sm:max-w-none">Olá, <b>{user.name}</b></span>
-              <button onClick={handleLogout} className="text-red-400 hover:text-red-300 transition flex items-center gap-1 flex-shrink-0">
-                <LogOut className="h-4 w-4 flex-shrink-0" /> Sair
-              </button>
-            </div>
-          ) : (
-            <Link to="/auth" className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg font-semibold transition">
-              Entrar / Registrar
-            </Link>
-          )}
-        </div>
-      </nav>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors flex flex-col">
+        {/* Cabeçalho Global Fixo com suporte a Dark Mode e Botão de Tema */}
+        <nav className="sticky top-0 z-50 bg-gray-900 dark:bg-slate-950 text-white px-4 sm:px-6 py-3 flex flex-wrap justify-between items-center text-xs sm:text-sm shadow border-b border-gray-800 dark:border-slate-800 gap-3">
+          <div className="font-bold tracking-wide flex items-center gap-2 min-w-0">
+            <Building2 className="h-5 w-5 text-blue-400 flex-shrink-0" />
+            <span className="truncate">Sistema Imobiliário Multi-Tenant</span>
+          </div>
+          <div className="flex items-center flex-wrap gap-2 sm:gap-4">
+            {user?.tenantId && (
+              <Link to={`/catalog/${user.tenantId}`} className="hover:text-blue-300 transition flex items-center gap-1">
+                <Globe className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden md:inline">Site Público da Imobiliária</span>
+                <span className="md:hidden">Site Público</span>
+              </Link>
+            )}
+            {user?.role === 'SUPER_ADMIN' ? (
+              <Link to="/super-admin" className="hover:text-purple-300 transition flex items-center gap-1 text-purple-400 font-semibold">
+                <ShieldAlert className="h-4 w-4 flex-shrink-0" /> Super Admin
+              </Link>
+            ) : user ? (
+              <Link to="/admin" className="hover:text-blue-300 transition flex items-center gap-1">
+                <Settings className="h-4 w-4 flex-shrink-0" /> Painel Admin
+              </Link>
+            ) : null}
 
-      <Routes>
-        <Route path="/catalog/:tenantId" element={<PublicCatalogWrapper />} />
-        <Route path="/catalog" element={<PublicCatalogWrapper />} />
-        <Route path="/" element={<PublicCatalogWrapper />} />
-        <Route
-          path="/auth"
-          element={user ? <Navigate to={user.role === 'SUPER_ADMIN' ? '/super-admin' : '/admin'} /> : <AuthScreen onLoginSuccess={(u) => setUser(u)} />}
-        />
-        <Route
-          path="/admin"
-          element={user ? (user.role === 'SUPER_ADMIN' ? <Navigate to="/super-admin" /> : <AdminDashboard />) : <Navigate to="/auth" />}
-        />
-        <Route
-          path="/super-admin"
-          element={user?.role === 'SUPER_ADMIN' ? <SuperAdminPanel /> : <Navigate to="/auth" />}
-        />
-      </Routes>
+            {/* Botão de Alternância de Tema global */}
+            <ThemeToggle />
+
+            {user ? (
+              <div className="flex items-center gap-2 sm:gap-3 border-l border-gray-700 dark:border-slate-700 pl-3 sm:pl-4">
+                <span className="text-xs text-gray-300 truncate max-w-[100px] sm:max-w-none">Olá, <b>{user.name}</b></span>
+                <button onClick={handleLogout} className="text-red-400 hover:text-red-300 transition flex items-center gap-1 flex-shrink-0">
+                  <LogOut className="h-4 w-4 flex-shrink-0" /> Sair
+                </button>
+              </div>
+            ) : (
+              <Link to="/auth" className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg font-semibold transition">
+                Entrar / Registrar
+              </Link>
+            )}
+          </div>
+        </nav>
+
+        <div className="flex-1">
+          <Routes>
+            <Route path="/catalog/:tenantId" element={<PublicCatalogWrapper />} />
+            <Route path="/catalog" element={<PublicCatalogWrapper />} />
+            <Route path="/" element={<PublicCatalogWrapper />} />
+            <Route
+              path="/auth"
+              element={user ? <Navigate to={user.role === 'SUPER_ADMIN' ? '/super-admin' : '/admin'} /> : <AuthScreen onLoginSuccess={(u) => setUser(u)} />}
+            />
+            <Route
+              path="/admin"
+              element={user ? (user.role === 'SUPER_ADMIN' ? <Navigate to="/super-admin" /> : <AdminDashboard />) : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/super-admin"
+              element={user?.role === 'SUPER_ADMIN' ? <SuperAdminPanel /> : <Navigate to="/auth" />}
+            />
+          </Routes>
+        </div>
+      </div>
     </BrowserRouter>
+  );
+}
+
+export function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

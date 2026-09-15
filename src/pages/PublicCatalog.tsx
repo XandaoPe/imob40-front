@@ -159,9 +159,11 @@ export const PublicCatalog: React.FC<PublicCatalogProps> = ({ tenantId }) => {
     const hasActiveFilters = Boolean(search || city || type || purpose || minPrice || maxPrice);
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between selection:bg-blue-600 selection:text-white">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col justify-between selection:bg-blue-600 selection:text-white transition-colors">
             <div>
-                <Header tenant={tenant} getImageUrl={getImageUrl} />
+                <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                    <Header tenant={tenant} getImageUrl={getImageUrl} />
+                </div>
 
                 <FilterBar
                     search={search}
@@ -187,10 +189,10 @@ export const PublicCatalog: React.FC<PublicCatalogProps> = ({ tenantId }) => {
                             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
                         </div>
                     ) : properties.length === 0 ? (
-                        <div className="text-center py-20 bg-white rounded-2xl border border-slate-200 shadow-sm max-w-xl mx-auto p-8">
-                            <SlidersHorizontal className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-bold text-slate-800 mb-1">Nenhum imóvel encontrado</h3>
-                            <p className="text-sm text-slate-500 mb-4">Tente ajustar os filtros ou termos de busca para encontrar o que procura.</p>
+                        <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm max-w-xl mx-auto p-8">
+                            <SlidersHorizontal className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">Nenhum imóvel encontrado</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Tente ajustar os filtros ou termos de busca para encontrar o que procura.</p>
                             {hasActiveFilters && (
                                 <button
                                     onClick={handleClearFilters}
@@ -243,7 +245,7 @@ export const PublicCatalog: React.FC<PublicCatalogProps> = ({ tenantId }) => {
                 prevImage={prevImage}
             />
 
-            <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-16">
+            <footer className="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 py-6 text-center text-xs text-slate-500 dark:text-slate-400 mt-16 transition-colors">
                 <p>{tenant?.tradeName || 'Sistema Imobiliário'} — Todos os direitos reservados.</p>
             </footer>
         </div>

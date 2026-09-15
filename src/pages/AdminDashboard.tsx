@@ -8,9 +8,12 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { TenantAuthProvider } from '../context/TenantAuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import { ClientManagement } from '../components/ClientManagement';
+import { api } from '../services/api';
+import { Tenant } from '../types';
 
 export const AdminDashboardContent: React.FC = () => {
     const [user, setUser] = useState<any>(null);
+    const [tenant, setTenant] = useState<Tenant | null>(null);
     const [activeTab, setActiveTab] = useState<'broker' | 'property' | 'crm' | 'client'>('property');
     const [successMessage, setSuccessMessage] = useState<string>('');
     const [errorMessage, setErrorMessage] = useState<string>('');
@@ -20,6 +23,11 @@ export const AdminDashboardContent: React.FC = () => {
         if (savedUser) {
             const parsed = JSON.parse(savedUser);
             setUser(parsed);
+            if (parsed.tenantId) {
+                api.get(`/tenants/${parsed.tenantId}`)
+                    .then(res => setTenant(res.data))
+                    .catch(err => console.error('Erro ao carregar dados da imobiliária', err));
+            }
             if (parsed.role === 'BROKER') {
                 setActiveTab('property');
             }
@@ -48,14 +56,19 @@ export const AdminDashboardContent: React.FC = () => {
 
     const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
     const tenantId = user?.tenantId;
+    const tenantName = tenant?.tradeName || tenant?.name;
 
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6 text-gray-800 dark:text-gray-100 transition-colors">
             <div className="max-w-6xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden transition-colors">
                 <div className="bg-blue-900 dark:bg-blue-950 p-6 text-white flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-bold">Painel Administrativo - CRM Multi-Tenant</h1>
-                        <p className="text-sm text-blue-200">Gerencie corretores, imóveis e negócios da sua imobiliária.</p>
+                        <h1 className="text-2xl font-bold">
+                            {tenantName ? `${tenantName} - Painel Administrativo` : 'Painel Administrativo - CRM Multi-Tenant'}
+                        </h1>
+                        <p className="text-sm text-blue-200">
+                            {tenantName ? `Gerencie corretores, imóveis e negócios da ${tenantName}.` : 'Gerencie corretores, imóveis e negócios da sua imobiliária.'}
+                        </p>
                     </div>
                     <div className="flex items-center gap-4">
                         {tenantId && (
@@ -206,7 +219,7 @@ export const AdminDashboardContent: React.FC = () => {
                             }}
                         />
                     )}
-                    
+
                 </div>
             </div>
         </div>
