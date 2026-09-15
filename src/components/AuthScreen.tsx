@@ -38,12 +38,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
         }
     };
 
-    // Função para cadastrar biometria (continua exigindo o e-mail preenchido para vincular à conta correta)
+    // Função para cadastrar biometria configurada com Chave Residente (Resident Key)
     const handleRegisterBiometric = async () => {
         try {
             setError('');
             if (!identifier) {
-                setError('Digite seu e-mail acima para cadastrar a biometria.');
+                setError('Digite seu e-mail acima para vincular a biometria.');
                 return;
             }
 
@@ -63,9 +63,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                     name: email,
                     displayName: name || email
                 },
-                pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
+                pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
                 timeout: 60000,
-                attestation: 'none'
+                attestation: 'none',
+                // OBRIGATÓRIO PARA LOGIN AUTÔNOMO: Define que a biometria é salva no aparelho como chave residente
+                authenticatorSelection: {
+                    authenticatorAttachment: 'platform',
+                    residentKey: 'required',
+                    userVerification: 'required'
+                }
             };
 
             const cred = await navigator.credentials.create({ publicKey }) as PublicKeyCredential;
@@ -78,11 +84,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                 setSuccess('Biometria cadastrada com sucesso! Agora você pode usá-la para entrar.');
             }
         } catch (err: any) {
-            setError('Não foi possível cadastrar a biometria. Verifique se cancelou a operação.');
+            setError('Não foi possível cadastrar a biometria. Verifique se cancelou a operação ou se o dispositivo suporta.');
         }
     };
 
-    // Função de Login por Biometria 100% Independente (Sem exigir e-mail ou senha prévios)
+    // Função de Login por Biometria 100% Independente
     const handleBiometricLogin = async () => {
         try {
             setError('');
@@ -92,7 +98,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                 return;
             }
 
-            // Pede um desafio genérico ao backend
             const chalRes = await api.get('/auth/biometric/challenge');
             const { challenge } = chalRes.data;
 
@@ -102,10 +107,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                 userVerification: 'required'
             };
 
-            // O navegador solicita a biometria do usuário e retorna a credencial correspondente
             const assertion = await navigator.credentials.get({ publicKey }) as PublicKeyCredential;
             if (assertion) {
-                // Envia apenas o ID da credencial para o backend identificar o usuário e gerar o token
                 const response = await api.post('/auth/biometric/login', {
                     credentialId: assertion.id
                 });
@@ -221,7 +224,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                         <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold p-3 rounded-lg transition mt-2">
                             Registrar Imobiliária & Admin
                         </button>
-                        <p className="text-center text-sm text-gray-400 mt-2">
+                        <p className="text-center text-sm text-gray-200 mt-2">
                             Já tem conta?{' '}
                             <button type="button" onClick={() => setIsRegistering(false)} className="text-blue-400 hover:underline font-medium">
                                 Faça login
